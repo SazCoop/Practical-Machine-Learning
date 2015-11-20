@@ -1,0 +1,88 @@
+---
+title: "Practical Machine Learning Lib"
+output: html_document
+---
+Program: https://class.coursera.org/predmachlearn-034
+
+Project Overview: 
+Given: Dataset containing data, collected from devices such as Jawbone Up, Nike FuelBand, and Fitbit. These devices data are often used to find patterns in pysical activity, However they find they quantity but rarely the quality of the activity.
+Experiment: Data from the accelermoters on the belt, forearm, arm and dumbell of 6 participants. Each undertook barbell lifts in correct and incorrect way.
+Goal: To predict the manner in which they did the exercise. This is the "classe" variable in the training set. 
+
+More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+#############################Begin#############################################
+Step 1: Loading in the datsets form their urls giving in assigment instructions
+The seed 2394 can  be used to reproduce the results.
+
+```{r}
+trainUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training <- read.csv(url(trainUrl))
+testing <- read.csv(url(testUrl))
+set.seed(2394)
+```
+
+Step 2: Pre processing and Cleaning the Data
+
+
+(a) Getting rid of #DIV/0! Figures. Note this can be done when loading in the dataset also.
+
+
+```{r}
+library(caret)
+dim(training)
+training[training == "#DIV/0!"] <- NA
+```
+
+(b) Getting rid of variables that are unique or not relevant for prediction. ID code and timestamps.
+
+```{r}
+dim(training)
+x <- unique(training[,1])
+length(x)
+training <- training[,-(1:5)]
+```
+
+(c)Getting rid of values that are are near zero variance(NZV)
+
+```{r}
+nzv <- nearZeroVar(training)
+filteredDescr <- training[, -nzv]
+training <- filteredDescr
+```
+
+(d) Getting rid of colums with > 80% NAs
+
+```{r}
+naData = is.na(training)
+xy <- (colSums(naData)-(.2*colSums(naData)))
+omitColumns <- which(colSums(naData) > xy)
+training1 <- training[, -omitColumns]
+```
+
+After the data is all cleaned the number of predictors has decreased from 160 to 54. This makes the
+
+Step2: Creating a Partion 
+I used 60% in my training set and 40% in my test set
+
+```{r}
+inTrain1 <- createDataPartition(y=training1$classe, p = 0.6, list =FALSE)
+training <- training1[inTrain1,]
+testing <- training1[-inTrain1,]
+```
+
+
+Step 3: Train & Test
+I decided to use a random forest as the model to fit my data too.
+
+
+```{r}
+library(randomForest)
+modFit <- randomForest(classe ~. , data=training)
+pred <- predict(modFit, testing, type = "class")
+confusionMatrix(pred,testing$classe)
+```
+
+The confusion matrix shows very positive results. With a High Accuracy figure.
+ I then used this modFit model to fit to the test set given for the assignment submission.
